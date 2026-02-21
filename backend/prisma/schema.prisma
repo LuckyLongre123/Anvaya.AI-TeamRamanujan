@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  fullName  String
+  email     String    @unique
+  password  String
+  desc      String?
+  role      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  projects  Project[]
+}
+
+
+type File {
+  name String
+  url  String
+}
+
+model Project {
+  id                        String          @id @default(auto()) @map("_id") @db.ObjectId
+  projectName               String
+  project_description       String
+  included_messaging_source String[]      @default([])
+files                        File[]
+  brdMdx                    String?
+  status                    Int              @default(0)
+  userId                    String          @db.ObjectId
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stakeholders   Stakeholder[]
+  facts          Fact[]
+  contradictions Contradiction[]
+  resolutions    Resolution[]
+}
+
+model Stakeholder {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  role      String
+  influence String
+  stance    String
+  projectId String @db.ObjectId
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Fact {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  content    Json
+  source     String
+  tone       String
+  when       DateTime
+  resolved   Boolean @default(true)
+  projectId  String   @db.ObjectId
+ sourceType FactSourceType
+ stackHolderId String?  @db.ObjectId
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+enum FactSourceType {
+  messaging
+  file
+}
+
+model Contradiction {
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  contradiction_facts String[]      @default([])
+  context             String
+  projectId           String   @db.ObjectId
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Resolution {
+  id               String  @id @default(auto()) @map("_id") @db.ObjectId
+  final_decision   String
+  winnerFactId     String? @db.ObjectId
+  custom_input     String
+  reasoning        String
+  contradiction_id String  @db.ObjectId
+  projectId        String  @db.ObjectId
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+

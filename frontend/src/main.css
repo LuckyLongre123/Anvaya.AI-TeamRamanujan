@@ -1,0 +1,193 @@
+@import "tailwindcss";
+
+/* ══════════════════════════════════════════════════
+   ANVAYA.AI — GLOBAL DESIGN SYSTEM
+   Token-based, minimal, enterprise-grade
+   ══════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    /* Brand colours */
+    --anvaya-indigo:   #4f46e5;
+    --anvaya-indigo-d: #3730a3;
+    --anvaya-indigo-l: #eef2ff;
+    --anvaya-rose:     #e11d48;
+    --anvaya-rose-l:   #fff1f2;
+    --anvaya-amber:    #d97706;
+    --anvaya-amber-l:  #fffbeb;
+    --anvaya-emerald:  #059669;
+    --anvaya-emerald-l:#ecfdf5;
+    --anvaya-purple:   #7c3aed;
+    --anvaya-purple-l: #f5f3ff;
+
+    /* Neutral surface */
+    --surface-0: #ffffff;
+    --surface-1: #f8fafc;
+    --surface-2: #f1f5f9;
+    --border:    #e2e8f0;
+    --border-sm: #f1f5f9;
+
+    /* Text */
+    --text-primary:   #0f172a;
+    --text-secondary: #475569;
+    --text-muted:     #94a3b8;
+
+    /* Radius */
+    --r-sm:  8px;
+    --r-md:  12px;
+    --r-lg:  20px;
+    --r-xl:  28px;
+    --r-2xl: 40px;
+
+    /* Shadow */
+    --shadow-card: 0 1px 3px 0 rgb(0 0 0 / .05), 0 1px 2px -1px rgb(0 0 0 / .05);
+    --shadow-lg:   0 10px 40px -12px rgb(79 70 229 / .15);
+  }
+
+  html {
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--surface-1);
+    color: var(--text-primary);
+    min-height: 100dvh;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Custom scrollbar — thin, indigo */
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 99px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #818cf8; }
+  * { scrollbar-width: thin; scrollbar-color: #c7d2fe transparent; }
+}
+
+/* ── Utilities ────────────────────────────────────── */
+@layer utilities {
+  /* Animated gradient border */
+  .anvaya-border-glow {
+    background: linear-gradient(var(--surface-0), var(--surface-0)) padding-box,
+                linear-gradient(135deg, #4f46e5, #e11d48, #d97706) border-box;
+    border: 1px solid transparent;
+  }
+
+  /* Frosted glass */
+  .glass {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  /* Pulse glow animation */
+  .pulse-glow {
+    animation: pulseGlow 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+    50%       { box-shadow: 0 0 0 8px rgba(79, 70, 229, 0.12); }
+  }
+
+  /* Subtle float animation */
+  .float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-6px); }
+  }
+
+  /* Shine sweep */
+  .shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .shine::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+    animation: shine 2.5s ease-in-out infinite;
+  }
+  @keyframes shine {
+    0% { left: -100%; }
+    60%, 100% { left: 100%; }
+  }
+
+  /* Fade in up */
+  .fade-up {
+    animation: fadeUp 0.4s ease-out both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Card hover lift */
+  .card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px -8px rgba(79,70,229,0.18);
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #e11d48 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Status pill colours */
+  .status-0 { background: #eef2ff; color: #4f46e5; }
+  .status-1 { background: #fff1f2; color: #e11d48; }
+  .status-2 { background: #fffbeb; color: #d97706; }
+  .status-3 { background: #fff1f2; color: #e11d48; }
+  .status-4 { background: #f5f3ff; color: #7c3aed; }
+  .status-5 { background: #ecfdf5; color: #059669; }
+
+  /* Blueprint grid bg */
+  .bg-blueprint {
+    background-image: radial-gradient(#6366f1 0.5px, transparent 0.5px);
+    background-size: 28px 28px;
+    opacity: 0.03;
+  }
+
+  /* Noise texture */
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  }
+
+  /* Input base */
+  .input-base {
+    @apply w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800;
+    @apply focus:outline-none focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100;
+    @apply transition-all duration-200 placeholder:text-slate-400;
+  }
+
+  /* Button variants */
+  .btn-primary {
+    @apply px-6 py-3 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-xl;
+    @apply hover:bg-indigo-600 transition-all duration-200 shadow-lg shadow-indigo-100/50;
+    @apply active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply px-6 py-3 bg-white border border-slate-200 text-slate-700 font-black text-xs uppercase tracking-widest rounded-xl;
+    @apply hover:bg-slate-50 hover:border-slate-300 transition-all duration-200;
+    @apply active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-danger {
+    @apply px-6 py-3 bg-rose-600 text-white font-black text-xs uppercase tracking-widest rounded-xl;
+    @apply hover:bg-rose-700 transition-all duration-200 shadow-lg shadow-rose-100;
+  }
+}
