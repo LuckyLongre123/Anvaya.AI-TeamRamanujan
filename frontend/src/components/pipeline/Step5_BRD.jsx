@@ -9,44 +9,263 @@ import { toast } from 'sonner';
 
 // ─── MARKDOWN RENDERER ───────────────────────────────────────────────────────
 
+/* ── Inline formatter: bold, italic, citations ── */
+function renderInline(text) {
+    // Split on bold, then within each piece handle citations
+    const withBold = text.split(/\*\*(.*?)\*\*/g);
+    return withBold.map((segment, j) => {
+        if (j % 2 === 1) {
+            // bold segment
+            return <strong key={j} className="font-bold text-slate-800">{segment}</strong>;
+        }
+        // Handle [Ref: FACT-xxx] citations
+        const citeParts = segment.split(/(\[Ref:\s*FACT-\d+\])/gi);
+        return citeParts.map((cp, k) => {
+            if (/^\[Ref:\s*FACT-\d+\]$/i.test(cp)) {
+                return (
+                    <span key={`${j}-${k}`} className="inline-block bg-indigo-50 text-indigo-700 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-indigo-200 mx-0.5 align-middle">
+                        {cp}
+                    </span>
+                );
+            }
+            return cp || null;
+        });
+    });
+}
+
 function renderMarkdown(md) {
     if (!md) return null;
-    return md.split('\n').map((line, i) => {
-        if (line.startsWith('# '))
-            return <h1 key={i} className="text-xl font-black text-slate-900 mt-6 mb-2 pb-2 border-b border-slate-200">{line.slice(2)}</h1>;
-        if (line.startsWith('## '))
-            return <h2 key={i} className="text-base font-black text-slate-800 mt-5 mb-2">{line.slice(3)}</h2>;
-        if (line.startsWith('### '))
-            return <h3 key={i} className="text-sm font-bold text-indigo-700 mt-3 mb-1">{line.slice(4)}</h3>;
-        if (line.startsWith('---'))
-            return <hr key={i} className="my-3 border-slate-200" />;
-        if (line.startsWith('- '))
-            return (
-                <div key={i} className="flex items-start gap-2 my-0.5">
-                    <span className="mt-2 w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
-                    <span className="text-xs text-slate-600">{line.slice(2)}</span>
+    // Strip code fences Gemini sometimes wraps around the BRD
+    md = md.replace(/^```(?:markdown|md)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+    const lines = md.split('\n');
+    const elements = [];
+    let i = 0;
+
+    while (i < lines.length) {
+        const line = lines[i];
+
+        // ── Table block ──
+        if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+            const tableLines = [];
+            while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+                tableLines.push(lines[i]);
+                i++;
+            }
+            // Parse header row
+            const headerCells = tableLines[0].split('|').filter(c => c.trim() !== '');
+            // Skip separator row (|---|---|)
+            const dataStartIdx = (tableLines.length > 1 && /^[\s|:-]+$/.test(tableLines[1])) ? 2 : 1;
+            const dataRows = tableLines.slice(dataStartIdx).map(r => r.split('|').filter(c => c.trim() !== ''));
+
+            elements.push(
+                <div key={`tbl-${i}`} className="my-3 overflow-x-auto rounded-lg border border-slate-200">
+                    <table className="w-full text-xs">
+                        <thead>
+                            <tr className="bg-indigo-50 border-b border-indigo-100">
+                                {headerCells.map((h, ci) => (
+                                    <th key={ci} className="px-3 py-2 text-left font-black text-indigo-800 uppercase tracking-wider text-[10px]">
+                                        {h.trim()}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {dataRows.map((row, ri) => (
+                                <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                                    {row.map((cell, ci) => (
+                                        <td key={ci} className="px-3 py-2 text-slate-600 border-t border-slate-100">
+                                            {renderInline(cell.trim())}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             );
-        if (line.includes('**')) {
-            const parts = line.split(/\*\*(.*?)\*\*/g);
-            return (
-                <p key={i} className="text-xs text-slate-600 leading-relaxed my-0.5">
-                    {parts.map((p, j) =>
-                        j % 2 === 1
-                            ? <strong key={j} className="font-bold text-slate-800">{p}</strong>
-                            : p
-                    )}
-                </p>
-            );
+            continue;
         }
-        if (line.trim() === '') return <div key={i} className="h-1.5" />;
-        return <p key={i} className="text-xs text-slate-600 leading-relaxed my-0.5">{line}</p>;
-    });
+
+        // ── Numbered / ordered list ──
+        if (/^\d+\.\s/.test(line.trim())) {
+            const listItems = [];
+            while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
+                listItems.push(lines[i].trim().replace(/^\d+\.\s/, ''));
+                i++;
+            }
+            elements.push(
+                <ol key={`ol-${i}`} className="my-2 ml-4 list-decimal list-outside space-y-1">
+                    {listItems.map((item, li) => (
+                        <li key={li} className="text-xs text-slate-600 leading-relaxed pl-1">
+                            {renderInline(item)}
+                        </li>
+                    ))}
+                </ol>
+            );
+            continue;
+        }
+
+        // ── Blockquote ──
+        if (line.startsWith('> ')) {
+            const quoteLines = [];
+            while (i < lines.length && lines[i].startsWith('> ')) {
+                quoteLines.push(lines[i].slice(2));
+                i++;
+            }
+            elements.push(
+                <blockquote key={`bq-${i}`} className="my-2 pl-3 border-l-3 border-indigo-300 bg-indigo-50/40 py-2 pr-3 rounded-r-lg">
+                    {quoteLines.map((ql, qi) => (
+                        <p key={qi} className="text-xs text-slate-600 leading-relaxed">{renderInline(ql)}</p>
+                    ))}
+                </blockquote>
+            );
+            continue;
+        }
+
+        // ── Headings ──
+        if (line.startsWith('# ')) {
+            elements.push(<h1 key={i} className="text-xl font-black text-slate-900 mt-6 mb-2 pb-2 border-b border-slate-200">{line.slice(2)}</h1>);
+            i++; continue;
+        }
+        if (line.startsWith('## ')) {
+            elements.push(<h2 key={i} className="text-base font-black text-slate-800 mt-5 mb-2">{line.slice(3)}</h2>);
+            i++; continue;
+        }
+        if (line.startsWith('### ')) {
+            elements.push(<h3 key={i} className="text-sm font-bold text-indigo-700 mt-3 mb-1">{line.slice(4)}</h3>);
+            i++; continue;
+        }
+
+        // ── Horizontal rule ──
+        if (line.startsWith('---')) {
+            elements.push(<hr key={i} className="my-3 border-slate-200" />);
+            i++; continue;
+        }
+
+        // ── Bullet list item ──
+        if (line.startsWith('- ')) {
+            elements.push(
+                <div key={i} className="flex items-start gap-2 my-0.5">
+                    <span className="mt-2 w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
+                    <span className="text-xs text-slate-600">{renderInline(line.slice(2))}</span>
+                </div>
+            );
+            i++; continue;
+        }
+
+        // ── Empty line ──
+        if (line.trim() === '') {
+            elements.push(<div key={i} className="h-1.5" />);
+            i++; continue;
+        }
+
+        // ── Default paragraph ──
+        elements.push(
+            <p key={i} className="text-xs text-slate-600 leading-relaxed my-0.5">
+                {renderInline(line)}
+            </p>
+        );
+        i++;
+    }
+
+    return elements;
 }
 
 // ─── PDF EXPORT ──────────────────────────────────────────────────────────────
 
 function exportToPDF(projectName, brdMdx) {
+    /* ── Convert markdown to HTML with full table/list/citation support ── */
+    function mdToHtml(md) {
+        // Strip code fences Gemini sometimes wraps around the BRD
+        md = md.replace(/^```(?:markdown|md)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+        const lines = md.split('\n');
+        const out = [];
+        let i = 0;
+
+        while (i < lines.length) {
+            const line = lines[i];
+
+            // Table block
+            if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+                const tbl = [];
+                while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+                    tbl.push(lines[i]);
+                    i++;
+                }
+                const hdr = tbl[0].split('|').filter(c => c.trim());
+                const dataStart = (tbl.length > 1 && /^[\s|:-]+$/.test(tbl[1])) ? 2 : 1;
+                const rows = tbl.slice(dataStart).map(r => r.split('|').filter(c => c.trim()));
+                out.push('<table>');
+                out.push('<thead><tr>' + hdr.map(h => `<th>${inlineFmt(h.trim())}</th>`).join('') + '</tr></thead>');
+                out.push('<tbody>');
+                rows.forEach((r, ri) => {
+                    const cls = ri % 2 === 0 ? '' : ' class="alt"';
+                    out.push(`<tr${cls}>` + r.map(c => `<td>${inlineFmt(c.trim())}</td>`).join('') + '</tr>');
+                });
+                out.push('</tbody></table>');
+                continue;
+            }
+
+            // Ordered list
+            if (/^\d+\.\s/.test(line.trim())) {
+                out.push('<ol>');
+                while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
+                    out.push(`<li>${inlineFmt(lines[i].trim().replace(/^\d+\.\s/, ''))}</li>`);
+                    i++;
+                }
+                out.push('</ol>');
+                continue;
+            }
+
+            // Bullet list
+            if (line.startsWith('- ')) {
+                out.push('<ul>');
+                while (i < lines.length && lines[i].startsWith('- ')) {
+                    out.push(`<li>${inlineFmt(lines[i].slice(2))}</li>`);
+                    i++;
+                }
+                out.push('</ul>');
+                continue;
+            }
+
+            // Blockquote
+            if (line.startsWith('> ')) {
+                out.push('<blockquote>');
+                while (i < lines.length && lines[i].startsWith('> ')) {
+                    out.push(`<p>${inlineFmt(lines[i].slice(2))}</p>`);
+                    i++;
+                }
+                out.push('</blockquote>');
+                continue;
+            }
+
+            // Headings
+            if (line.startsWith('# ')) { out.push(`<h1>${inlineFmt(line.slice(2))}</h1>`); i++; continue; }
+            if (line.startsWith('## ')) { out.push(`<h2>${inlineFmt(line.slice(3))}</h2>`); i++; continue; }
+            if (line.startsWith('### ')) { out.push(`<h3>${inlineFmt(line.slice(4))}</h3>`); i++; continue; }
+
+            // Horizontal rule
+            if (line.startsWith('---')) { out.push('<hr/>'); i++; continue; }
+
+            // Empty line
+            if (line.trim() === '') { out.push('<br/>'); i++; continue; }
+
+            // Default paragraph
+            out.push(`<p>${inlineFmt(line)}</p>`);
+            i++;
+        }
+        return out.join('\n');
+    }
+
+    /* ── Inline: bold + citations ── */
+    function inlineFmt(txt) {
+        return txt
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\[Ref:\s*(FACT-\d+)\]/gi, '<span class="cite">[Ref: $1]</span>');
+    }
+
+    const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
     const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -54,31 +273,62 @@ function exportToPDF(projectName, brdMdx) {
   <title>BRD · ${projectName}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:ui-sans-serif,system-ui,sans-serif;font-size:11px;color:#1e293b;line-height:1.6;padding:48px 60px}
-    h1{font-size:22px;font-weight:900;margin:0 0 8px;padding-bottom:8px;border-bottom:2px solid #4f46e5;color:#0f172a}
-    h2{font-size:14px;font-weight:800;margin:24px 0 6px;color:#1e293b;padding-bottom:4px;border-bottom:1px solid #e2e8f0}
+    body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:11px;color:#1e293b;line-height:1.65;padding:40px 56px 60px}
+
+    /* ── Cover header ── */
+    .cover{margin-bottom:28px;padding-bottom:18px;border-bottom:3px solid #4f46e5}
+    .cover h1{font-size:24px;font-weight:900;color:#0f172a;margin:0 0 4px}
+    .cover .meta{font-size:10px;color:#64748b;margin-top:2px}
+    .cover .badge{display:inline-block;background:#eef2ff;color:#4f46e5;font-size:8px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:3px 10px;border-radius:100px;margin-top:10px}
+
+    /* ── Typography ── */
+    h1{font-size:20px;font-weight:900;margin:28px 0 8px;padding-bottom:6px;border-bottom:2px solid #4f46e5;color:#0f172a}
+    h2{font-size:14px;font-weight:800;margin:22px 0 6px;color:#1e293b;padding-bottom:3px;border-bottom:1px solid #e2e8f0}
     h3{font-size:12px;font-weight:700;margin:14px 0 4px;color:#4f46e5}
     p{margin:3px 0;font-size:11px;color:#475569}
-    ul{margin:4px 0 4px 16px}li{margin:2px 0;color:#475569}
-    hr{margin:14px 0;border:none;border-top:1px solid #e2e8f0}
     strong{font-weight:700;color:#1e293b}
-    .badge{display:inline-block;background:#eef2ff;color:#4f46e5;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;padding:4px 10px;border-radius:100px;margin-bottom:14px}
+
+    /* ── Lists ── */
+    ul,ol{margin:6px 0 6px 20px;font-size:11px;color:#475569}
+    li{margin:3px 0;line-height:1.55}
+
+    /* ── Tables ── */
+    table{width:100%;border-collapse:collapse;margin:12px 0;font-size:10.5px;border:1px solid #cbd5e1}
+    thead tr{background:#eef2ff}
+    th{text-align:left;padding:8px 12px;font-weight:800;font-size:9.5px;color:#3730a3;text-transform:uppercase;letter-spacing:.08em;border:1px solid #cbd5e1;background:#eef2ff}
+    td{padding:7px 12px;border:1px solid #cbd5e1;color:#334155}
+    tr.alt{background:#f8fafc}
+    tbody tr:hover{background:#f1f5f9}
+
+    /* ── Citations ── */
+    .cite{display:inline-block;background:#eef2ff;color:#4338ca;font-size:8.5px;font-weight:800;padding:1px 6px;border-radius:100px;border:1px solid #c7d2fe;vertical-align:middle;margin:0 1px}
+
+    /* ── Blockquotes ── */
+    blockquote{margin:10px 0;padding:8px 14px;border-left:3px solid #a5b4fc;background:#f5f3ff;border-radius:0 6px 6px 0}
+    blockquote p{font-size:10.5px;color:#4338ca;margin:2px 0}
+
+    /* ── Misc ── */
+    hr{margin:16px 0;border:none;border-top:1px solid #e2e8f0}
+
+    /* ── Footer ── */
     .footer{margin-top:40px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:9px;color:#94a3b8;text-align:center}
-    @media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+
+    /* ── Print ── */
+    @media print{
+      body{padding:32px 48px 48px;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+      h1,h2,h3{page-break-after:avoid}
+      table,blockquote{page-break-inside:avoid}
+    }
   </style>
 </head>
 <body>
-  <div class="badge">Verified by Anvaya.Ai · Full Data Lineage Preserved</div>
-  ${brdMdx
-            .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-            .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-            .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-            .replace(/^---$/gm, '<hr/>')
-            .replace(/^- (.+)$/gm, '<li>$1</li>')
-            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\n\n/g, '<p></p>')
-            .replace(/\n/g, ' ')}
-  <div class="footer">Generated by Anvaya.Ai · ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+  <div class="cover">
+    <h1 style="border:none;margin:0;padding:0">${projectName}</h1>
+    <div class="meta">Business Requirements Document · Generated ${dateStr}</div>
+    <div class="badge">Verified by Anvaya.Ai · Full Data Lineage Preserved</div>
+  </div>
+  ${mdToHtml(brdMdx)}
+  <div class="footer">Generated by Anvaya.Ai · ${dateStr}</div>
 </body>
 </html>`;
 

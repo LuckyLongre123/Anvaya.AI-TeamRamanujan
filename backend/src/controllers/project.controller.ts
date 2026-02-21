@@ -844,6 +844,8 @@ export const generateBRD = async (req: any, res: any, next: any) => {
       3. Include a Data Lineage section mapping each BRD clause to original communication sources.
       4. Format output as clean Markdown with proper headers (# for H1, ## for H2, ### for H3).
       5. Be professional, forensic, and precise. No hallucinations.
+      6. Use proper Markdown table syntax (| Header | Header |, |---|---|, | cell | cell |) for the Stakeholder Authority Matrix, Data Lineage & Provenance, and any other tabular data. NEVER use dash-lists for tabular data.
+      7. For the Stakeholder Authority Matrix table, include columns: Name, Role, Influence, Stance.
 
       PROJECT CONTEXT:
       - Project Name: ${project.projectName}
