@@ -352,6 +352,28 @@ export const mapStakeholders = async (req: any, res: any, next: any) => {
     );
   }
 };
+
+export const deleteStakeholder = async (req: any, res: any, next: any) => {
+  try {
+    const { projectId, stakeholderId } = req.params;
+    if (!projectId) return next(new apiError(400, "projectId is required"));
+    if (!stakeholderId) return next(new apiError(400, "stakeholderId is required"));
+
+    const stakeholder = await prisma.stakeholder.findFirst({
+      where: { id: stakeholderId, projectId },
+    });
+    if (!stakeholder) return next(new apiError(404, "Stakeholder not found"));
+
+    await prisma.stakeholder.delete({ where: { id: stakeholderId } });
+    return Api.success(res, null, "Stakeholder deleted successfully");
+  } catch (error: any) {
+    console.error("Delete Stakeholder Error:", error);
+    return next(
+      new apiError(500, "Failed to delete stakeholder", [error.message]),
+    );
+  }
+};
+
 /*
 type File {
   name String
@@ -455,265 +477,6 @@ export const increamentProjectStatus = async (
   }
 };
 
-
-/*
-{
-    "user_id": "test1",
-    "fullName": "Alex Chen",
-    "email": "alex.chen@example.com",
-    "role": "CEO",
-    "project": "E-Commerce Checkout Flow",
-    "data_vault": {
-        "proposal": {
-            "vendor": "CyberSafe Security Solutions",
-            "authorized_by": "Sarah Jenkins (Lead Auditor)",
-            "project": "PCI-DSS Compliance & Penetration Test",
-            "scope": [
-                "Comprehensive penetration testing of checkout-related microservices.",
-                "PCI-DSS Level 2 compliance readiness assessment.",
-                "Formal vulnerability remediation report.",
-                "Risk documentation aligned with insurance policy requirements."
-            ],
-            "cost": "$15,000 USD",
-            "timeline": "14 business days from project kickoff",
-            "mandatory_compliance": "External audit is required for maintaining 'Pro Tier' payment processing license. Internal scans alone insufficient. Skipping audit increases license, insurance, and legal risks."
-        },
-        "meetings": [
-            {
-                "meeting_id": "mtg_tech_review_2024-02-05",
-                "title": "Technical Architecture Review (Stakeholders Sync)",
-                "date": "Feb 05, 2024",
-                "participants": [
-                    "Alex Chen (CEO)",
-                    "Rajesh Patel (CTO)",
-                    "Maria Santos (CFO)"
-                ],
-                "minutes": [
-                    {
-                        "timestamp": "00:05:12",
-                        "speaker": "Rajesh (CTO)",
-                        "text": "Uh, okay, so I’ve shared the CyberSafe proposal. It’s $15,000, um… and, yeah, we really need to sign this by Friday to stay on track for the March 31 launch."
-                    },
-                    {
-                        "timestamp": "00:06:10",
-                        "speaker": "Alex (CEO)",
-                        "text": "Hmm, $15k… Can we maybe shuffle something around in the budget? What’s the risk if we delay?"
-                    },
-                    {
-                        "timestamp": "00:06:45",
-                        "speaker": "Maria (CFO)",
-                        "text": "Rajesh, I’m looking at the ledger again. We only have $55k total for the whole project. Uh… if we spend $15k on this audit, we might not afford the Stripe senior integration developers."
-                    },
-                    {
-                        "timestamp": "00:07:30",
-                        "speaker": "Alex (CEO)",
-                        "text": "Could we push the audit to Q2 then? Just thinking aloud…"
-                    },
-                    {
-                        "timestamp": "00:07:45",
-                        "speaker": "Rajesh (CTO)",
-                        "text": "Well, it’s a risk, Alex. If we have a breach, the internal scan alone, uh… won’t protect us legally, at least not fully."
-                    },
-                    {
-                        "timestamp": "00:08:10",
-                        "speaker": "Alex (CEO)",
-                        "text": "I get that, I do. But, the March 31 launch date is non-negotiable for the investors. So, um… I think we may need to skip the external audit for now, and use the $15k to speed up development."
-                    },
-                    {
-                        "timestamp": "00:08:30",
-                        "speaker": "Maria (CFO)",
-                        "text": "Alright… I mean, if you insist, budget is locked at $55k with no audit fee. Just, uh… make sure we note everything carefully."
-                    },
-                    {
-                        "timestamp": "00:08:50",
-                        "speaker": "Rajesh (CTO)",
-                        "text": "Yes, exactly. Ensure we log all high-risk decisions, exceptions, and any partial PCI compliance evidence for our records. It’s… important, okay?"
-                    },
-                    {
-                        "timestamp": "00:09:15",
-                        "speaker": "Alex (CEO)",
-                        "text": "Noted. Partial internal audit evidence will be documented. Stripe integration gets priority. And, uh, let’s try to revisit external audit in Q2 if budget allows."
-                    },
-                    {
-                        "timestamp": "00:09:45",
-                        "speaker": "Maria (CFO)",
-                        "text": "Fine… but just to flag, skipping the audit increases our legal and insurance exposure. So, every decision, uh… must be logged and reviewed later."
-                    }
-                ]
-            }
-        ],
-        "whatsapp": [
-            {
-                "thread_id": "wa_group_001",
-                "name": "Executive Strategic Sync",
-                "is_relevant": true,
-                "messages": [
-                    {
-                        "sender": "Maria Santos (CFO)",
-                        "text": "Uh, Alex, we are overleveraged. $45k is the hard limit for the checkout project… I mean, anything more is risky."
-                    },
-                    {
-                        "sender": "Alex Chen (CEO)",
-                        "text": "Maria, I hear you. But if we don't fix the drop-offs, we could lose $100k/month. I'm thinking we push for $55k total."
-                    },
-                    {
-                        "sender": "Rajesh Patel (CTO)",
-                        "text": "Doing this right with PCI compliance… honestly, that’s an $80k job if we want full coverage."
-                    },
-                    {
-                        "sender": "Alex Chen (CEO)",
-                        "text": "Hmm, okay… let's find a middle ground. $55k total, but we cut the external audit. At least temporarily."
-                    },
-                    {
-                        "sender": "Maria Santos (CFO)",
-                        "text": "Cutting the audit worries me. Internal scans won’t protect us legally. Uh… just saying."
-                    },
-                    {
-                        "sender": "Rajesh Patel (CTO)",
-                        "text": "Yes, agreed. Legal exposure increases without external validation. Maybe a note in logs?"
-                    },
-                    {
-                        "sender": "Alex Chen (CEO)",
-                        "text": "Then internal audit only. Speed up development, Stripe integration first. We'll revisit audit Q2."
-                    },
-                    {
-                        "sender": "Maria Santos (CFO)",
-                        "text": "Fine. Log every decision, flag skipped audit for compliance records… and, uh, remind me later to follow up with legal."
-                    },
-                    {
-                        "sender": "Rajesh Patel (CTO)",
-                        "text": "Also, backend tokenization & encryption tests must be documented even if audit skipped. Just a heads-up."
-                    },
-                    {
-                        "sender": "Alex Chen (CEO)",
-                        "text": "Noted. Partial PCI evidence documented. High-risk transactions flagged. We'll recheck later."
-                    }
-                ]
-            },
-            {
-                "thread_id": "wa_group_social",
-                "name": "Friday Night Football ⚽",
-                "is_relevant": false,
-                "messages": [
-                    {
-                        "sender": "Coach Mike",
-                        "text": "Who's in for the 7 PM match? Pitch 4 is booked."
-                    },
-                    {
-                        "sender": "Alex Chen",
-                        "text": "I'm in! Bringing the extra water bottles."
-                    },
-                    {
-                        "sender": "Dave",
-                        "text": "Last week's game was a disaster. Need a better goalie lol."
-                    }
-                ]
-            },
-            {
-                "thread_id": "wa_family",
-                "name": "Chen Family Chat 🏠",
-                "is_relevant": false,
-                "messages": [
-                    {
-                        "sender": "Mom",
-                        "text": "Alex, don't forget dinner at 6 PM on Sunday."
-                    },
-                    {
-                        "sender": "Alex Chen",
-                        "text": "Got it, Mom. I'll bring the dessert."
-                    }
-                ]
-            }
-        ],
-        "slack": [
-            {
-                "channel_id": "sl_project_dev",
-                "name": "#checkout-dev-ops",
-                "is_relevant": true,
-                "messages": [
-                    {
-                        "sender": "James Liu (Senior Dev)",
-                        "text": "Uh, the $15k external security audit is really critical. Without it, we’re flying blind on vulnerabilities."
-                    },
-                    {
-                        "sender": "Rajesh Patel (CTO)",
-                        "text": "CEO ordered a $55k cap. If we keep the audit, we lose Stripe integration devs… tricky."
-                    },
-                    {
-                        "sender": "James Liu (Senior Dev)",
-                        "text": "Fine, we skip the audit, but I’m marking it 'High Risk' in logs, okay?"
-                    },
-                    {
-                        "sender": "Rajesh Patel (CTO)",
-                        "text": "Also, backend tokenization & encryption tests must be documented even if audit skipped. Don’t forget."
-                    },
-                    {
-                        "sender": "Alex Chen (CEO)",
-                        "text": "Document partial PCI evidence. Flag high-risk transactions. We’ll follow up later."
-                    },
-                    {
-                        "sender": "James Liu (Senior Dev)",
-                        "text": "Noted. Will create temporary risk mitigation report and circulate to team. Uh, just to be safe."
-                    }
-                ]
-            },
-            {
-                "channel_id": "sl_random",
-                "name": "#random-and-memes",
-                "is_relevant": false,
-                "messages": [
-                    {
-                        "sender": "Priya Sharma",
-                        "text": "Has anyone seen that cat video? 🐱"
-                    },
-                    {
-                        "sender": "James Liu",
-                        "text": "Classic. Coffee machine in lobby is broken again."
-                    }
-                ]
-            },
-            {
-                "channel_id": "sl_hr",
-                "name": "#hr-announcements",
-                "is_relevant": false,
-                "messages": [
-                    {
-                        "sender": "HR Bot",
-                        "text": "Friendly reminder: Submit expense reports by EOD Friday."
-                    },
-                    {
-                        "sender": "HR Bot",
-                        "text": "New policy: No open-toed shoes in server room."
-                    }
-                ]
-            }
-        ],
-        "gmail": [
-            {
-                "thread_id": "gm_001",
-                "subject": "RE: Budget Realignment",
-                "from": "Maria Santos (CFO)",
-                "content": "Alex, I've moved $10k from Marketing pool. You have $55k total. Do not ask for more. Uh… just making sure you saw this.",
-                "is_relevant": true
-            },
-            {
-                "thread_id": "gm_002",
-                "subject": "Payment Compliance Reminder",
-                "from": "Rajesh Patel (CTO)",
-                "content": "Reminder: PCI compliance must be maintained. Skipping external audit increases legal & insurance risk. Please note, this is critical.",
-                "is_relevant": true
-            },
-            {
-                "thread_id": "gm_999",
-                "subject": "Your Amazon.in order has shipped!",
-                "from": "Amazon Notifications",
-                "content": "Your order for 'Ergonomic Mouse Pad' is on the way.",
-                "is_relevant": false
-            }
-        ]
-    }
-}
-     */
 
 export const mapFacts = async (req: any, res: any, next: any) => {
   try {

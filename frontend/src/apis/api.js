@@ -244,6 +244,20 @@ export const mapStakeholders = async (projectId, relevantChats) => {
   }
 };
 
+export const deleteStakeholder = async (projectId, stakeholderId) => {
+  try {
+    const response = await api.delete(`/projects/${projectId}/stakeholders/${stakeholderId}`);
+    const msg = _extractMessage(response) || "Stakeholder deleted successfully";
+    toast.success(msg);
+    return response.data ?? response;
+  } catch (error) {
+    console.error('Error deleting stakeholder:', error);
+    const errMsg = error?.response ? (error.response.data?.message ?? error.response.message) : "Failed to delete stakeholder";
+    toast.error(errMsg);
+    throw error;
+  }
+};
+
 export const increamentProjectStatus = async (projectId) => {
   try {
     const response = await api.post(`/projects/${projectId}/increament-status`);

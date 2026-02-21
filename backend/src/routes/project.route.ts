@@ -5,6 +5,7 @@ import {
   deleteProject,
   uploadProjectFiles,
   mapStakeholders,
+  deleteStakeholder,
   increamentProjectStatus,
   mapFacts,
   deleteFact,
@@ -26,6 +27,7 @@ projectRouter.delete("/projects/:projectId", deleteProject);
 
 projectRouter.post("/projects/:projectId/files", upload.array("files", 10), uploadProjectFiles);
 projectRouter.post("/projects/:projectId/stakeholders", mapStakeholders);
+projectRouter.delete("/projects/:projectId/stakeholders/:stakeholderId", deleteStakeholder);
 projectRouter.post("/projects/:projectId/increament-status", increamentProjectStatus);
 projectRouter.post("/projects/:projectId/map-facts", mapFacts);
 projectRouter.delete("/projects/:projectId/facts/:factId", deleteFact);

@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { FiUsers, FiArrowRight, FiRefreshCw, FiUser, FiShield, FiTrendingUp } from 'react-icons/fi';
+import React, { useState } from 'react';
+import { FiUsers, FiArrowRight, FiUser, FiTrendingUp, FiTrash2, FiZap } from 'react-icons/fi';
 import { useAuth } from '../providers/AuthProvider';
 import { useProject } from '../providers/ProjectProvider';
-import { mapStakeholders, increamentProjectStatus } from '../../apis/api';
+import { mapStakeholders, deleteStakeholder, increamentProjectStatus } from '../../apis/api';
 import { toast } from 'sonner';
 
 const influenceConfig = {
@@ -18,7 +18,7 @@ const stanceConfig = {
     Blocking: { bg: 'bg-rose-100', text: 'text-rose-700' },
 };
 
-function StakeholderCard({ s }) {
+function StakeholderCard({ s, onDelete, deleting }) {
     const inf = influenceConfig[s.influence] || influenceConfig.Medium;
     const stance = stanceConfig[s.stance] || stanceConfig.Neutral;
 
@@ -26,6 +26,16 @@ function StakeholderCard({ s }) {
         <div className={`relative p-5 rounded-2xl border ${inf.border} ${inf.bg} hover:shadow-md transition-all duration-300 group`}>
             {/* Influence dot */}
             <div className={`absolute top-4 right-4 w-2.5 h-2.5 rounded-full ${inf.dot}`} title={`${s.influence} Influence`} />
+
+            {/* Delete button – visible on hover */}
+            <button
+                onClick={() => onDelete(s.id)}
+                disabled={deleting}
+                title="Remove stakeholder"
+                className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1.5 rounded-lg bg-white border border-rose-200 text-rose-500 hover:bg-rose-50 disabled:opacity-40"
+            >
+                <FiTrash2 className="w-3.5 h-3.5" />
+            </button>
 
             <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-xl bg-white shadow-sm border border-slate-100 flex items-center justify-center shrink-0">
@@ -53,15 +63,16 @@ function StakeholderCard({ s }) {
 export default function Step1_Stakeholders() {
     const { testUser } = useAuth();
     const { project, fetchProject, stakeholders, setStakeholders } = useProject() || {};
-    const [rerunning, setRerunning] = useState(false);
+    const [extracting, setExtracting] = useState(false);
     const [advancing, setAdvancing] = useState(false);
+    const [deletingId, setDeletingId] = useState(null);
 
-    // Fetch stakeholders from project data if not in context yet
     const localStakeholders = stakeholders || [];
 
-    const handleRerun = async () => {
+    // ── Extract (re-run) stakeholders ──────────────────────────────────────
+    const handleExtract = async () => {
         if (!project?.id || !testUser?.data_vault) return;
-        setRerunning(true);
+        setExtracting(true);
         try {
             const dv = testUser.data_vault;
             const relevantChats = {};
@@ -75,14 +86,31 @@ export default function Step1_Stakeholders() {
             const res = await mapStakeholders(project.id, relevantChats);
             const list = res?.data || res || [];
             if (setStakeholders) setStakeholders(Array.isArray(list) ? list : []);
-            toast.success('Stakeholders re-extracted!');
-        } catch (err) {
-            toast.error('Re-run failed');
+            toast.success('Stakeholders extracted successfully!');
+        } catch {
+            toast.error('Extraction failed');
         } finally {
-            setRerunning(false);
+            setExtracting(false);
         }
     };
 
+    // ── Delete a single stakeholder ────────────────────────────────────────
+    const handleDelete = async (stakeholderId) => {
+        if (!project?.id || !stakeholderId) return;
+        setDeletingId(stakeholderId);
+        try {
+            await deleteStakeholder(project.id, stakeholderId);
+            if (setStakeholders) {
+                setStakeholders(prev => (prev || []).filter(s => s.id !== stakeholderId));
+            }
+        } catch {
+            // toast already shown by api helper
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    // ── Advance to next stage ──────────────────────────────────────────────
     const handleAdvance = async () => {
         if (!project?.id) return;
         setAdvancing(true);
@@ -90,7 +118,7 @@ export default function Step1_Stakeholders() {
             await increamentProjectStatus(project.id);
             await fetchProject(project.id);
             toast.success('Moving to Atomic Fact Extraction →');
-        } catch (err) {
+        } catch {
             toast.error('Failed to advance stage');
         } finally {
             setAdvancing(false);
@@ -111,13 +139,19 @@ export default function Step1_Stakeholders() {
                         {localStakeholders.length} stakeholder{localStakeholders.length !== 1 ? 's' : ''} identified from your communications.
                     </p>
                 </div>
+
+                {/* Extract Stakeholders button (replaces "Re-run") */}
                 <button
-                    onClick={handleRerun}
-                    disabled={rerunning}
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all disabled:opacity-50"
+                    onClick={handleExtract}
+                    disabled={extracting}
+                    className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-xl text-xs font-bold hover:bg-rose-700 transition-all disabled:opacity-50 shadow-sm shadow-rose-200"
                 >
-                    <FiRefreshCw className={`w-3.5 h-3.5 ${rerunning ? 'animate-spin' : ''}`} />
-                    Re-run
+                    {extracting ? (
+                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                        <FiZap className="w-3.5 h-3.5" />
+                    )}
+                    {extracting ? 'Extracting…' : 'Extract Stakeholders'}
                 </button>
             </div>
 
@@ -138,13 +172,20 @@ export default function Step1_Stakeholders() {
             {/* Stakeholder Grid */}
             {localStakeholders.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {localStakeholders.map((s, i) => <StakeholderCard key={s.id || i} s={s} />)}
+                    {localStakeholders.map((s, i) => (
+                        <StakeholderCard
+                            key={s.id || i}
+                            s={s}
+                            onDelete={handleDelete}
+                            deleting={deletingId === s.id}
+                        />
+                    ))}
                 </div>
             ) : (
                 <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed border-slate-200 rounded-2xl">
                     <FiUsers className="w-12 h-12 text-slate-300 mb-3" />
                     <p className="text-sm font-bold text-slate-400">No stakeholders extracted yet</p>
-                    <p className="text-xs text-slate-400 mt-1">Click "Re-run" to trigger extraction from your data vault.</p>
+                    <p className="text-xs text-slate-400 mt-1">Click "Extract Stakeholders" to identify them from your data vault.</p>
                 </div>
             )}
 
