@@ -7,7 +7,7 @@ import { FiMail, FiLock, FiArrowRight, FiShield, FiZap } from 'react-icons/fi';
 export default function Login() {
   const navigate = useNavigate();
   const { setUser } = useAuth();
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ email: 'alex.chen@example.com', password: '1234' });
   const [loading, setLoading] = useState(false);
 
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
