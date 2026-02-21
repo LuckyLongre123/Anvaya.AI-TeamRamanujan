@@ -319,6 +319,18 @@ export const findContradictions = async (projectId) => {
 
 
 
+export const getResolutions = async (projectId) => {
+  try {
+    const response = await api.get(`/projects/${projectId}/resolutions`);
+    return response.data ?? response;
+  } catch (error) {
+    console.error('Error fetching resolutions:', error);
+    const errMsg = error?.response ? (error.response.data?.message ?? error.response.message) : "Failed to fetch resolutions";
+    toast.error(errMsg);
+    throw error;
+  }
+};
+
 export const resolveContradiction = async (projectId, resolvedData) => {
   try {
     // resolvedData can be a single object or an array of resolution objects

@@ -10,6 +10,7 @@ import {
   mapFacts,
   deleteFact,
   findContradictions,
+  getResolutions,
   ResolveContradiction,
   generateBRD,
   refineBRD,
@@ -33,6 +34,7 @@ projectRouter.post("/projects/:projectId/map-facts", mapFacts);
 projectRouter.delete("/projects/:projectId/facts/:factId", deleteFact);
 projectRouter.post("/projects/:projectId/find-contradictions", findContradictions);
 projectRouter.post("/projects/:projectId/resolve-contradiction", ResolveContradiction);
+projectRouter.get("/projects/:projectId/resolutions", getResolutions);
 projectRouter.post("/projects/:projectId/generate-brd", generateBRD);
 projectRouter.post("/projects/:projectId/refine-brd", refineBRD);
 projectRouter.post("/projects/:projectId/save-brd", saveBRD);

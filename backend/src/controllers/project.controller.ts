@@ -901,6 +901,37 @@ export const generateBRD = async (req: any, res: any, next: any) => {
   }
 };
 
+export const getResolutions = async (req: any, res: any, next: any) => {
+  try {
+    const { projectId } = req.params;
+    if (!projectId) return next(new apiError(400, "ProjectId is required"));
+
+    const resolutions = await prisma.resolution.findMany({
+      where: { projectId },
+    });
+
+    // Fetch associated contradictions for context
+    const contradictions = await prisma.contradiction.findMany({
+      where: { projectId },
+    });
+
+    // Merge contradiction context into each resolution
+    const enriched = resolutions.map((r: any) => {
+      const contradiction = contradictions.find((c: any) => c.id === r.contradiction_id);
+      return {
+        ...r,
+        contradiction_context: contradiction?.context || "",
+        contradiction_facts: contradiction?.contradiction_facts || [],
+      };
+    });
+
+    return Api.success(res, enriched, "Resolutions fetched successfully");
+  } catch (error: any) {
+    console.error("Get Resolutions Error:", error);
+    return next(new apiError(500, "Failed to fetch resolutions", [error.message]));
+  }
+};
+
 export const ResolveContradiction = async (req: any, res: any, next: any) => {
   try {
     const { projectId } = req.params;

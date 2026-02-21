@@ -11,7 +11,7 @@ import Step0_Ingestion from '../components/pipeline/Step0_Ingestion';
 import Step1_Stakeholders from '../components/pipeline/Step1_Stakeholders';
 import Step2_Facts from '../components/pipeline/Step2_Facts';
 import Step3_Conflicts from '../components/pipeline/Step3_Conflicts';
-import Step4_HITL from '../components/pipeline/Step4_HITL';
+import Step4_Summary from '../components/pipeline/Step4_Summary';
 import Step5_BRD from '../components/pipeline/Step5_BRD';
 
 const STEP_LABELS = [
@@ -19,7 +19,7 @@ const STEP_LABELS = [
   'Stakeholders',
   'Facts',
   'Conflicts',
-  'HITL',
+  'Summary',
   'BRD',
 ];
 
@@ -50,7 +50,7 @@ function PipelineContent() {
     case 1: return <Step1_Stakeholders />;
     case 2: return <Step2_Facts />;
     case 3: return <Step3_Conflicts />;
-    case 4: return <Step4_HITL />;
+    case 4: return <Step4_Summary />;
     case 5: return <Step5_BRD />;
     default: return <Step5_BRD />;
   }

@@ -12,6 +12,7 @@ export function ProjectProvider({ children }) {
   const [stakeholders, setStakeholders] = useState([]);
   const [facts, setFacts] = useState([]);
   const [contradictions, setContradictions] = useState([]);
+  const [resolutions, setResolutions] = useState([]);
 
   const fetchProject = useCallback(async (id) => {
     if (!id) return null;
@@ -43,6 +44,8 @@ export function ProjectProvider({ children }) {
     setFacts,
     contradictions,
     setContradictions,
+    resolutions,
+    setResolutions,
   };
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;
