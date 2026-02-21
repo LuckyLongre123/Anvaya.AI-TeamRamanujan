@@ -2,7 +2,7 @@ import axios from 'axios';
 
 async function main() {
   const fixtures = await import('./testuse.js');
-  const BACKEND = process.env.BACKEND_URL || 'http://localhost:8000';
+  const BACKEND = process.env.VITE_BACKEND_URL || 'http://localhost:8000';
   const endpoint = `${BACKEND}/api/v1/users`;
 
   const list = [fixtures.user1, fixtures.user2, fixtures.user3, fixtures.user4, fixtures.user5];
